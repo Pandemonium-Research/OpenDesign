@@ -150,6 +150,4 @@ This means CSS keyframe animations, `requestAnimationFrame` loops, and `setTimeo
 
 ## License
 
-Copyright 2026 Pandemonium Research. All rights reserved.
-
-This software is proprietary and confidential. Unauthorized copying, distribution, modification, or use of this software, in whole or in part, is strictly prohibited without prior written permission from Pandemonium Research.
+MIT — Copyright (c) 2026 Pandemonium Research. See [LICENSE](LICENSE) for details.
