@@ -7,7 +7,7 @@ interface ExportPanelProps {
   fullHtml: string;
 }
 
-type ExportFormat = 'html' | 'video';
+type ExportFormat = 'html' | 'pdf' | 'video';
 
 export function ExportPanel({ prototype, fullHtml }: ExportPanelProps) {
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
@@ -41,8 +41,9 @@ export function ExportPanel({ prototype, fullHtml }: ExportPanelProps) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = format === 'html'
-        ? `${prototype.title.replace(/\s+/g, '-').toLowerCase()}.zip`
+      const slug = prototype.title.replace(/\s+/g, '-').toLowerCase();
+      a.download = format === 'html' ? `${slug}.zip`
+        : format === 'pdf' ? `${slug}.pdf`
         : 'prototype.mp4';
       a.click();
       URL.revokeObjectURL(url);
@@ -58,8 +59,9 @@ export function ExportPanel({ prototype, fullHtml }: ExportPanelProps) {
   return (
     <div className="flex flex-col gap-2">
       <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Export</label>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <ExportButton label="HTML" icon="📦" format="html" exporting={exporting} disabled={disabled} onClick={doExport} />
+        <ExportButton label="PDF" icon="📄" format="pdf" exporting={exporting} disabled={disabled} onClick={doExport} />
         <ExportButton label="MP4" icon="🎬" format="video" exporting={exporting} disabled={disabled} onClick={doExport} />
       </div>
       {error && <p className="text-xs text-red-400">{error}</p>}
