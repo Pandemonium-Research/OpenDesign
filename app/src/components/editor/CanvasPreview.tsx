@@ -21,7 +21,7 @@ export function CanvasPreview({ html }: CanvasPreviewProps) {
     <iframe
       srcDoc={html}
       className="w-full h-full border-0 rounded-lg"
-      sandbox="allow-scripts allow-same-origin"
+      sandbox="allow-scripts"
       title="Prototype preview"
     />
   );

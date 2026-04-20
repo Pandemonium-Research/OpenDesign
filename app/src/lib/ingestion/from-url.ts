@@ -88,8 +88,11 @@ export async function ingestFromUrl(url: string): Promise<BrandContext> {
     .map((t) => {
       const ext = t.$extensions?.['com.projectwallace.css-authored-as'];
       if (typeof ext === 'string') return ext;
-      const v = t.$value as DtcgDimensionValue;
-      return `${v.value}${v.unit}`;
+      const v = t.$value;
+      if (v && typeof v === 'object' && 'value' in v && 'unit' in v) {
+        return `${(v as DtcgDimensionValue).value}${(v as DtcgDimensionValue).unit}`;
+      }
+      return String(v);
     });
 
   const brandContextString = [
