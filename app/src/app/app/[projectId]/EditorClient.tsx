@@ -20,6 +20,7 @@ export function EditorClient({ projectId, projectName, initialBrandContext }: Ed
   const [provider, setProvider] = useState<Provider>('anthropic');
   const [fullHtml, setFullHtml] = useState('');
   const [prototype, setPrototype] = useState<Prototype | null>(null);
+  const [artifactId, setArtifactId] = useState<string | undefined>(undefined);
   const [brandContext, setBrandContext] = useState<BrandContext | null>(initialBrandContext);
   const [name, setName] = useState(projectName);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,17 +64,19 @@ export function EditorClient({ projectId, projectName, initialBrandContext }: Ed
             projectId={projectId}
             provider={provider}
             brandContext={brandContext?.brandContextString}
-            onGenerate={({ fullHtml: h, prototype: p }) => {
+            onGenerate={({ fullHtml: h, prototype: p, artifactId: id }) => {
               setFullHtml(h);
               setPrototype(p);
+              setArtifactId(id);
             }}
           />
-          <ExportPanel prototype={prototype} fullHtml={fullHtml} />
+          <ExportPanel prototype={prototype} fullHtml={fullHtml} artifactId={artifactId} />
           <HistoryPanel
             projectId={projectId}
-            onLoad={({ fullHtml: h, prototype: p }) => {
+            onLoad={({ fullHtml: h, prototype: p, artifactId: id }) => {
               setFullHtml(h);
               setPrototype(p);
+              setArtifactId(id);
             }}
           />
         </aside>

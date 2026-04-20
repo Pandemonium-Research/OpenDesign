@@ -7,7 +7,7 @@ interface PromptPanelProps {
   projectId: string;
   provider: Provider;
   brandContext?: string;
-  onGenerate: (result: { fullHtml: string; prototype: Prototype }) => void;
+  onGenerate: (result: { fullHtml: string; prototype: Prototype; artifactId?: string }) => void;
 }
 
 export function PromptPanel({ projectId, provider, brandContext, onGenerate }: PromptPanelProps) {
@@ -34,8 +34,8 @@ export function PromptPanel({ projectId, provider, brandContext, onGenerate }: P
         throw new Error(err || 'Generation failed');
       }
 
-      const { prototype, fullHtml } = await res.json();
-      onGenerate({ fullHtml, prototype });
+      const { prototype, fullHtml, artifactId } = await res.json();
+      onGenerate({ fullHtml, prototype, artifactId });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

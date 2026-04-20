@@ -10,7 +10,7 @@ interface Artifact {
 
 interface HistoryPanelProps {
   projectId: string;
-  onLoad: (result: { fullHtml: string; prototype: Prototype }) => void;
+  onLoad: (result: { fullHtml: string; prototype: Prototype; artifactId: string }) => void;
 }
 
 export function HistoryPanel({ projectId, onLoad }: HistoryPanelProps) {
@@ -37,7 +37,7 @@ export function HistoryPanel({ projectId, onLoad }: HistoryPanelProps) {
 
   function handleLoad(artifact: Artifact) {
     const { fullHtml, prompt: _prompt, ...prototype } = artifact.document;
-    onLoad({ fullHtml, prototype: prototype as Prototype });
+    onLoad({ fullHtml, prototype: prototype as Prototype, artifactId: artifact.id });
   }
 
   return (

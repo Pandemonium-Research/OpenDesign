@@ -5,11 +5,12 @@ import type { Prototype } from '@/lib/ai/generate-prototype';
 interface ExportPanelProps {
   prototype: Prototype | null;
   fullHtml: string;
+  artifactId?: string;
 }
 
 type ExportFormat = 'html' | 'pdf' | 'video';
 
-export function ExportPanel({ prototype, fullHtml }: ExportPanelProps) {
+export function ExportPanel({ prototype, fullHtml, artifactId }: ExportPanelProps) {
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +28,7 @@ export function ExportPanel({ prototype, fullHtml }: ExportPanelProps) {
           css: prototype.css,
           js: prototype.js,
           title: prototype.title,
+          artifactId,
           durationSeconds: 5,
           fps: 30,
         }),
