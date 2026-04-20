@@ -11,6 +11,7 @@ const PROVIDERS: { id: Provider; label: string }[] = [
   { id: 'anthropic', label: 'Claude (Anthropic)' },
   { id: 'openai', label: 'GPT-4o (OpenAI)' },
   { id: 'gemini', label: 'Gemini (Google)' },
+  { id: 'ollama', label: 'Ollama (local)' },
 ];
 
 export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
