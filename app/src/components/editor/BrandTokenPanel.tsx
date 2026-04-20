@@ -5,13 +5,14 @@ import type { BrandContext } from '@/lib/ingestion/from-url';
 interface BrandTokenPanelProps {
   projectId: string;
   onIngested: (ctx: BrandContext) => void;
+  initialBrandContext?: BrandContext | null;
 }
 
-export function BrandTokenPanel({ projectId, onIngested }: BrandTokenPanelProps) {
+export function BrandTokenPanel({ projectId, onIngested, initialBrandContext }: BrandTokenPanelProps) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [brand, setBrand] = useState<BrandContext | null>(null);
+  const [brand, setBrand] = useState<BrandContext | null>(initialBrandContext ?? null);
 
   async function handleIngest(e: React.FormEvent) {
     e.preventDefault();
