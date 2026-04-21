@@ -2,7 +2,8 @@ import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { generatePrototype, buildFullHtml } from '@/lib/ai/generate-prototype';
 import { createClient } from '@/lib/supabase/server';
-import type { Provider } from '@/lib/ai/providers';
+import { hasKeyForProvider, type Provider } from '@/lib/ai/providers';
+import { decrypt } from '@/lib/encryption';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -23,12 +24,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'prompt and projectId are required' }, { status: 400 });
   }
 
+  const supabase = await createClient();
+
+  // Load user's encrypted API keys
+  const { data: keyRow } = await supabase
+    .from('user_api_keys')
+    .select('anthropic_key, openai_key, google_key')
+    .eq('user_id', userId)
+    .single();
+
+  const safeDecrypt = (enc: string | null | undefined) => {
+    if (!enc) return undefined;
+    try { return decrypt(enc); } catch { return undefined; }
+  };
+
+  const userKeys = {
+    anthropic: safeDecrypt(keyRow?.anthropic_key),
+    openai:    safeDecrypt(keyRow?.openai_key),
+    google:    safeDecrypt(keyRow?.google_key),
+  };
+
+  const effectiveProvider: Provider = provider ?? 'anthropic';
+  if (!hasKeyForProvider(effectiveProvider, userKeys)) {
+    return NextResponse.json(
+      { error: `No API key for ${effectiveProvider}. Add one in Settings → API Keys.` },
+      { status: 400 },
+    );
+  }
+
   try {
-    const prototype = await generatePrototype({ prompt, provider, brandContext });
+    const prototype = await generatePrototype({ prompt, provider: effectiveProvider, brandContext, userKeys });
     const fullHtml = buildFullHtml(prototype);
 
-    // Persist artifact to Supabase
-    const supabase = await createClient();
     const { data, error } = await supabase
       .from('artifacts')
       .insert({
@@ -39,10 +66,7 @@ export async function POST(req: NextRequest) {
       .select('id')
       .single();
 
-    if (error) {
-      console.error('Supabase insert error:', error);
-      // Return result even if DB save fails — don't block the user
-    }
+    if (error) console.error('Supabase insert error:', error);
 
     return NextResponse.json({ prototype, fullHtml, artifactId: data?.id });
   } catch (err: unknown) {

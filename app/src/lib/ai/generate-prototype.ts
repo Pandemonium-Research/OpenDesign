@@ -1,6 +1,6 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { getModel, type Provider } from './providers';
+import { getModel, type Provider, type UserApiKeys } from './providers';
 
 // Flat schema — avoids anyOf/discriminated unions that Gemini rejects
 export const PrototypeSchema = z.object({
@@ -19,6 +19,7 @@ export interface GeneratePrototypeOptions {
   prompt: string;
   brandContext?: string;
   provider?: Provider;
+  userKeys?: UserApiKeys;
 }
 
 const SYSTEM_PROMPT = `You are an expert frontend developer specializing in creating beautiful, production-quality UI components.
@@ -28,8 +29,8 @@ CSS should be scoped using unique class names with a "od-" prefix to avoid colli
 Animations should use CSS keyframes or requestAnimationFrame (not setTimeout-based delays).
 Make designs dark-themed, modern, and visually impressive by default.`;
 
-export async function generatePrototype({ prompt, brandContext, provider = 'anthropic' }: GeneratePrototypeOptions): Promise<Prototype> {
-  const model = getModel(provider);
+export async function generatePrototype({ prompt, brandContext, provider = 'anthropic', userKeys }: GeneratePrototypeOptions): Promise<Prototype> {
+  const model = getModel(provider, userKeys);
 
   const systemWithBrand = brandContext
     ? `${SYSTEM_PROMPT}\n\nBrand design tokens to use:\n${brandContext}`
