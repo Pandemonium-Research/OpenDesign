@@ -20,6 +20,8 @@ export interface GeneratePrototypeOptions {
   brandContext?: string;
   provider?: Provider;
   userKeys?: UserApiKeys;
+  /** Pass the current prototype to refine it rather than generate from scratch */
+  existingPrototype?: Prototype;
 }
 
 const SYSTEM_PROMPT = `You are an expert frontend developer specializing in creating beautiful, production-quality UI components.
@@ -29,8 +31,47 @@ CSS should be scoped using unique class names with a "od-" prefix to avoid colli
 Animations should use CSS keyframes or requestAnimationFrame (not setTimeout-based delays).
 Make designs dark-themed, modern, and visually impressive by default.`;
 
-export async function generatePrototype({ prompt, brandContext, provider = 'anthropic', userKeys }: GeneratePrototypeOptions): Promise<Prototype> {
+const REFINE_SYSTEM_PROMPT = `You are an expert frontend developer refining an existing UI prototype.
+You will receive the current HTML, CSS, and JS along with a modification instruction.
+Apply ONLY the requested changes while preserving everything else — layout, colors, fonts, animations.
+Return the complete updated code, not just the diff.
+CSS should use the same "od-" prefixed class names that already exist.`;
+
+export async function generatePrototype({
+  prompt,
+  brandContext,
+  provider = 'anthropic',
+  userKeys,
+  existingPrototype,
+}: GeneratePrototypeOptions): Promise<Prototype> {
   const model = getModel(provider, userKeys);
+
+  if (existingPrototype) {
+    const systemWithBrand = brandContext
+      ? `${REFINE_SYSTEM_PROMPT}\n\nBrand design tokens:\n${brandContext}`
+      : REFINE_SYSTEM_PROMPT;
+
+    const { object } = await generateObject({
+      model,
+      schema: PrototypeSchema,
+      system: systemWithBrand,
+      prompt: `Current design:
+
+HTML:
+${existingPrototype.html}
+
+CSS:
+${existingPrototype.css}
+
+JS:
+${existingPrototype.js || '(none)'}
+
+Modification requested:
+${prompt}`,
+    });
+
+    return object;
+  }
 
   const systemWithBrand = brandContext
     ? `${SYSTEM_PROMPT}\n\nBrand design tokens to use:\n${brandContext}`

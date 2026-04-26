@@ -206,6 +206,7 @@ export function EditorClient({ projectId, projectName, initialBrandContext }: Ed
                 provider={provider}
                 brandContext={brandContext?.brandContextString}
                 onGenerate={handlePrototypeGenerated}
+                currentPrototype={prototype}
               />
             )}
           </PanelGroup>

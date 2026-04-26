@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { generatePrototype, buildFullHtml } from '@/lib/ai/generate-prototype';
+import { generatePrototype, buildFullHtml, type Prototype } from '@/lib/ai/generate-prototype';
 import { createClient } from '@/lib/supabase/server';
 import { hasKeyForProvider, type Provider } from '@/lib/ai/providers';
 import { decrypt } from '@/lib/encryption';
@@ -13,11 +13,12 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { prompt, projectId, provider, brandContext } = body as {
+  const { prompt, projectId, provider, brandContext, existingPrototype } = body as {
     prompt: string;
     projectId: string;
     provider?: Provider;
     brandContext?: string;
+    existingPrototype?: Prototype;
   };
 
   if (!prompt || !projectId) {
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const prototype = await generatePrototype({ prompt, provider: effectiveProvider, brandContext, userKeys });
+    const prototype = await generatePrototype({ prompt, provider: effectiveProvider, brandContext, userKeys, existingPrototype });
     const fullHtml = buildFullHtml(prototype);
 
     const { data, error } = await supabase
