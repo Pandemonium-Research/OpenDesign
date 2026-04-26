@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { CanvasPreview } from '@/components/editor/CanvasPreview';
 import { PromptPanel } from '@/components/editor/PromptPanel';
+import { DeckPanel } from '@/components/editor/DeckPanel';
 import { ProviderSelector } from '@/components/editor/ProviderSelector';
 import { BrandTokenPanel } from '@/components/editor/BrandTokenPanel';
 import { ExportPanel } from '@/components/editor/ExportPanel';
@@ -9,6 +10,7 @@ import { HistoryPanel } from '@/components/editor/HistoryPanel';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { Provider } from '@/lib/ai/providers';
 import type { Prototype } from '@/lib/ai/generate-prototype';
+import type { Deck } from '@/lib/ai/generate-deck';
 import type { BrandContext } from '@/lib/ingestion/from-url';
 
 interface EditorClientProps {
@@ -17,10 +19,14 @@ interface EditorClientProps {
   initialBrandContext: BrandContext | null;
 }
 
+type ArtifactMode = 'prototype' | 'deck';
+
 export function EditorClient({ projectId, projectName, initialBrandContext }: EditorClientProps) {
   const [provider, setProvider] = useState<Provider>('anthropic');
+  const [artifactMode, setArtifactMode] = useState<ArtifactMode>('prototype');
   const [fullHtml, setFullHtml] = useState('');
   const [prototype, setPrototype] = useState<Prototype | null>(null);
+  const [deck, setDeck] = useState<Deck | null>(null);
   const [artifactId, setArtifactId] = useState<string | undefined>(undefined);
   const [brandContext, setBrandContext] = useState<BrandContext | null>(initialBrandContext);
   const [name, setName] = useState(projectName);
@@ -38,11 +44,29 @@ export function EditorClient({ projectId, projectName, initialBrandContext }: Ed
     }, 600);
   }
 
-  function handleGenerated(result: { fullHtml: string; prototype: Prototype; artifactId?: string }) {
+  function handlePrototypeGenerated(result: { fullHtml: string; prototype: Prototype; artifactId?: string }) {
     setFullHtml(result.fullHtml);
     setPrototype(result.prototype);
+    setDeck(null);
     setArtifactId(result.artifactId);
   }
+
+  function handleDeckGenerated(result: { fullHtml: string; deck: Deck; artifactId?: string }) {
+    setFullHtml(result.fullHtml);
+    setDeck(result.deck);
+    setPrototype(null);
+    setArtifactId(result.artifactId);
+  }
+
+  function handleHistoryLoad(result: { fullHtml: string; prototype: Prototype; artifactId?: string }) {
+    setFullHtml(result.fullHtml);
+    setPrototype(result.prototype);
+    setDeck(null);
+    setArtifactId(result.artifactId);
+    setArtifactMode('prototype');
+  }
+
+  const currentTitle = deck?.title ?? prototype?.title;
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--paper)', color: 'var(--ink)' }}>
@@ -66,7 +90,6 @@ export function EditorClient({ projectId, projectName, initialBrandContext }: Ed
         <div style={{ width: 1, height: 18, background: 'var(--rule-2)', flexShrink: 0 }} />
         <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 11, color: 'var(--ink-4)', flexShrink: 0 }}>SAVED · 2m</span>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          {/* Provider indicator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 12px 5px 8px', borderRadius: 999, border: '1px solid var(--rule-2)', fontSize: 12, color: 'var(--ink-2)' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--pigment-mint)', display: 'inline-block' }} />
             <ProviderSelector value={provider} onChange={setProvider} compact />
@@ -80,17 +103,12 @@ export function EditorClient({ projectId, projectName, initialBrandContext }: Ed
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '220px 1fr 320px', overflow: 'hidden' }}>
         {/* Left: Artifacts */}
         <aside style={{ borderRight: '1px solid var(--rule)', padding: '18px 14px', overflow: 'auto', background: 'var(--paper)' }}>
-          <EdSectionHead label="Artifacts" action="+" />
-          <HistoryPanel projectId={projectId} onLoad={handleGenerated} />
-
-          <div style={{ marginTop: 28 }}>
-            <EdSectionHead label="History" />
-          </div>
+          <EdSectionHead label="Artifacts" />
+          <HistoryPanel projectId={projectId} onLoad={handleHistoryLoad} />
         </aside>
 
         {/* Center: Canvas */}
         <main style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: 'var(--paper-2)' }}>
-          {/* Watercolor background for canvas */}
           <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }} aria-hidden="true">
             <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" style={{ width: '100%', height: '100%', display: 'block' }}>
               <g className="splash" filter="url(#watercolor-blur)">
@@ -102,17 +120,13 @@ export function EditorClient({ projectId, projectName, initialBrandContext }: Ed
           </div>
 
           {/* Tabs */}
-          <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--rule)', display: 'flex', gap: 4, background: 'var(--paper)', position: 'relative', zIndex: 2, flexShrink: 0 }}>
+          <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--rule)', display: 'flex', gap: 4, background: 'var(--paper)', position: 'relative', zIndex: 2, flexShrink: 0, alignItems: 'center' }}>
             <CanvasTab active>⬡ Preview</CanvasTab>
-            <CanvasTab>Code</CanvasTab>
-            <CanvasTab>Tokens</CanvasTab>
             <div style={{ flex: 1 }} />
-            <CanvasTab>Desktop</CanvasTab>
-            <CanvasTab>Tablet</CanvasTab>
-            <CanvasTab>Mobile</CanvasTab>
-            {prototype && (
-              <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 10, color: 'var(--ink-5)', display: 'flex', alignItems: 'center', paddingLeft: 8 }}>
-                {prototype.title}
+            {currentTitle && (
+              <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 10, color: 'var(--ink-5)', display: 'flex', alignItems: 'center' }}>
+                {deck && <span style={{ marginRight: 6, padding: '2px 6px', borderRadius: 4, background: 'var(--ac-15)', color: 'var(--ac)', fontSize: 9, fontWeight: 600 }}>DECK</span>}
+                {currentTitle}
               </span>
             )}
           </div>
@@ -125,16 +139,48 @@ export function EditorClient({ projectId, projectName, initialBrandContext }: Ed
 
         {/* Right: AI panel */}
         <aside style={{ borderLeft: '1px solid var(--rule)', padding: '18px 16px', background: 'var(--paper)', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 0 }}>
-          {/* Describe */}
+
+          {/* Artifact type selector */}
+          <div className="flex gap-1 p-0.5 rounded-xl" style={{ background: 'var(--paper-2)', border: '1px solid var(--rule)' }}>
+            {(['prototype', 'deck'] as ArtifactMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setArtifactMode(mode)}
+                className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all"
+                style={artifactMode === mode
+                  ? { background: 'var(--paper)', color: 'var(--ac)', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
+                  : { color: 'var(--ink-4)', background: 'transparent' }
+                }
+              >
+                {mode === 'prototype' ? 'Prototype' : 'Deck'}
+              </button>
+            ))}
+          </div>
+
+          {/* Generate section */}
           <PanelGroup>
             <h3 className="serif" style={{ fontStyle: 'italic', fontWeight: 400, fontSize: 20, margin: '0 0 4px', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Describe</h3>
-            <p style={{ fontSize: 11.5, color: 'var(--ink-4)', margin: '0 0 10px' }}>Write a prompt — be specific about tone & structure.</p>
-            <PromptPanel
-              projectId={projectId}
-              provider={provider}
-              brandContext={brandContext?.brandContextString}
-              onGenerate={handleGenerated}
-            />
+            <p style={{ fontSize: 11.5, color: 'var(--ink-4)', margin: '0 0 10px' }}>
+              {artifactMode === 'deck'
+                ? 'Describe your presentation — topic, audience, tone.'
+                : 'Write a prompt — be specific about tone & structure.'
+              }
+            </p>
+            {artifactMode === 'deck' ? (
+              <DeckPanel
+                projectId={projectId}
+                provider={provider}
+                brandContext={brandContext?.brandContextString}
+                onGenerate={handleDeckGenerated}
+              />
+            ) : (
+              <PromptPanel
+                projectId={projectId}
+                provider={provider}
+                brandContext={brandContext?.brandContextString}
+                onGenerate={handlePrototypeGenerated}
+              />
+            )}
           </PanelGroup>
 
           <PanelDivider />
@@ -142,23 +188,7 @@ export function EditorClient({ projectId, projectName, initialBrandContext }: Ed
           {/* Palette / Brand Tokens */}
           <PanelGroup>
             <h3 className="serif" style={{ fontStyle: 'italic', fontWeight: 400, fontSize: 20, margin: '0 0 4px', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Palette</h3>
-            <p style={{ fontSize: 11.5, color: 'var(--ink-4)', margin: '0 0 10px' }}>Extract tokens from any site URL.</p>
-            {/* Color swatches */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-              {[
-                { bg: 'var(--pigment-lavender)', sel: true },
-                { bg: 'var(--pigment-peach)',    sel: false },
-                { bg: 'var(--pigment-mint)',     sel: false },
-                { bg: 'var(--pigment-butter)',   sel: false },
-                { bg: 'var(--pigment-sky)',      sel: false },
-                { bg: 'var(--pigment-rose)',     sel: false },
-              ].map((s, i) => (
-                <div
-                  key={i}
-                  style={{ width: 28, height: 28, borderRadius: '50%', background: s.bg, border: '1px solid var(--rule-2)', cursor: 'pointer', position: 'relative', boxShadow: s.sel ? '0 0 0 2.5px var(--paper), 0 0 0 4px var(--ink)' : 'inset 0 1px 2px rgba(0,0,0,0.04)' }}
-                />
-              ))}
-            </div>
+            <p style={{ fontSize: 11.5, color: 'var(--ink-4)', margin: '0 0 10px' }}>Extract tokens from a site or GitHub repo.</p>
             <BrandTokenPanel
               projectId={projectId}
               initialBrandContext={initialBrandContext}
@@ -172,7 +202,7 @@ export function EditorClient({ projectId, projectName, initialBrandContext }: Ed
           <PanelGroup>
             <h3 className="serif" style={{ fontStyle: 'italic', fontWeight: 400, fontSize: 20, margin: '0 0 4px', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Export</h3>
             <p style={{ fontSize: 11.5, color: 'var(--ink-4)', margin: '0 0 10px' }}>Deterministic output, yours to keep.</p>
-            <ExportPanel prototype={prototype} fullHtml={fullHtml} artifactId={artifactId} />
+            <ExportPanel prototype={prototype} fullHtml={fullHtml} artifactId={artifactId} deck={deck} />
           </PanelGroup>
         </aside>
       </div>

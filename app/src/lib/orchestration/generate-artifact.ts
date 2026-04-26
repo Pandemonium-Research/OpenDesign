@@ -1,31 +1,33 @@
 import { generatePrototype, buildFullHtml } from '@/lib/ai/generate-prototype';
 import type { Prototype } from '@/lib/ai/generate-prototype';
-import type { Provider } from '@/lib/ai/providers';
+import { generateDeck, buildDeckHtml } from '@/lib/ai/generate-deck';
+import type { Deck } from '@/lib/ai/generate-deck';
+import type { Provider, UserApiKeys } from '@/lib/ai/providers';
 
-// Phase 1: prototype only. Phase 2 adds: 'deck' | 'landing-page'
-export type ArtifactType = 'prototype';
+export type ArtifactType = 'prototype' | 'deck';
 
 export interface GenerateArtifactOptions {
   type: ArtifactType;
   prompt: string;
   brandContextString?: string;
   provider?: Provider;
+  userKeys?: UserApiKeys;
 }
 
-export interface ArtifactResult {
-  type: ArtifactType;
-  prototype: Prototype;
-  fullHtml: string;
-}
+export type ArtifactResult =
+  | { type: 'prototype'; prototype: Prototype; fullHtml: string }
+  | { type: 'deck'; deck: Deck; fullHtml: string };
 
 export async function generateArtifact(options: GenerateArtifactOptions): Promise<ArtifactResult> {
-  const { type, prompt, brandContextString, provider } = options;
+  const { type, prompt, brandContextString, provider, userKeys } = options;
 
-  if (type !== 'prototype') {
-    throw new Error(`Artifact type "${type}" not yet supported — coming in Phase 2`);
+  if (type === 'deck') {
+    const deck = await generateDeck({ prompt, brandContext: brandContextString, provider, userKeys });
+    const fullHtml = buildDeckHtml(deck);
+    return { type: 'deck', deck, fullHtml };
   }
 
-  const prototype = await generatePrototype({ prompt, brandContext: brandContextString, provider });
+  const prototype = await generatePrototype({ prompt, brandContext: brandContextString, provider, userKeys });
   const fullHtml = buildFullHtml(prototype);
-  return { type, prototype, fullHtml };
+  return { type: 'prototype', prototype, fullHtml };
 }
